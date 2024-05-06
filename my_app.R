@@ -8,10 +8,13 @@ library(plotly)
 
 
 # Loading in Dataset
+#this data is adapted from My work for the Data Replication Assignment
 rodents <- "https://raw.githubusercontent.com/allyboville3/Data-Replication-Assignment/main/Hopkins%202008%20-%20Appendix1.csv"
 rodent_df <- read_csv(rodents, col_names = TRUE)
 
-## Create columns for Rectangular Toothrow Area (RTRA)
+# Cleaning Up Data
+
+# Create columns for Rectangular Toothrow Area (RTRA)
 # RTRA  = (LTRL X M1 width)
 # With the acknowledgement that we are making the assumption that rodent cheek teeth are essentially rectangular in shape 
 # (and that this may result in an overestimation of body mass), area was calculated by multiplying the length of the toothrow 
@@ -23,7 +26,7 @@ rodent_with_RTRA <- rodent_df %>%
   mutate(RTRA = (`LTRL (mm)` * `M1 width (mm)`))
 rodent_with_RTRA
 
-# Averaging Values and Cleaning Up Spreadsheet for Interspecises Comparisons
+# Averaging Values and Cleaning Up Spreadsheet for Interspecies Comparisons
 
 rodent_avg <- rodent_with_RTRA %>% 
   mutate(Mass = as.numeric(`mass (g)`), Pub_avg_mass = as.numeric(`pub. avg. mass (g)`), RTRA = as.numeric(`RTRA`)) %>% #change data for Mass, Published Average Mass, and Retangular Toothrow Area from type chr to dbl
@@ -43,21 +46,21 @@ rodent_avg <- rodent_with_RTRA %>%
   mutate(across(where(is.numeric), ~ round(., 2))) # rounding data to only have two decimal places
 rodent_avg
 
+#creating response and predictor variables
 r <- "log(Mass)"
 p <- c("log(LTRL)", "log(RTRA)")
 
 
 # ui section
-
 ui <- fluidPage(titlePanel(h1("Rodent Body Mass Estimator")),
                 sidebarLayout(
                   sidebarPanel(width = 5,
-                               selectInput(
+                               selectInput( #selecting log(Mass) as response variable
                                  "response",
                                   label = "Select Response Variable log(Mass)",
                                   choices = c("", r)
                   ), 
-                                selectInput(
+                                selectInput( # choosing between Lower toothrow length and Rectangular toothrow area for predictor variables
                                   "predictors",
                                    label = "Choose the predictor variable",
                                    choices = p,
@@ -66,9 +69,9 @@ ui <- fluidPage(titlePanel(h1("Rodent Body Mass Estimator")),
                   textOutput("model"), 
                   tableOutput("modelresults"),
                   br(),
-                  numericInput("LTRL_predict", label = h5("Enter a number value below for LTRL"), value = 0),
-                  numericInput("RTRA_predict", label = h5("Enter a number value below for RTRA"), value = 0),
-                  actionButton("predict_button", "Generate Predicted Body Mass", class = "factor"),
+                  numericInput("LTRL_predict", label = h5("Enter a number value below for LTRL"), value = 0), # allows for a positive numeric value to be entered for lower toothrow length
+                  numericInput("RTRA_predict", label = h5("Enter a number value below for RTRA"), value = 0), # allows for a positive numeric value to be entered for rectangular toothrow area
+                  actionButton("predict_button", "Generate Predicted Body Mass", class = "factor"), # action buttion to generate predicted body mass value
                   verbatimTextOutput("prediction_output"),
                   plotOutput("Body Size Estimation Plotted"),
                   
@@ -78,25 +81,13 @@ ui <- fluidPage(titlePanel(h1("Rodent Body Mass Estimator")),
                            dataTableOutput("datatable"),
                            plotOutput("plot"),
                           
-                  )
-                            
-                            
-                   # tabsetPanel(type = "tabs",
-                                        #tabPanel("Prediction",
-                                                # fluidPage(
-                                                  # titlePanel(title = div("Monthly Sales Volume", style = "color: #333333; font-size: 40px; font-weight: bold; text-align: center; height: 120px")),
-                                                   #sidebarLayout(
-                                                     
-                                                    # mainPanel( 
-                                                      
-                                                #   )))
-                                            #)
+                    )
                   )
                 )
-           # )
-#)
 
 #server section
+
+#Running linear model from response and predictor categories selected
 server <- function(input, output) {
   m <- reactive({
     mod <- NULL
@@ -116,6 +107,7 @@ server <- function(input, output) {
   }, width = "100%", rownames = TRUE, striped = TRUE, spacing = "s", bordered = TRUE,
   align = "c", digits = 2)
   
+#outputs from liner model portion
   output$model <- renderText({
     paste0("Model: ", print(m()))
   })
@@ -141,15 +133,17 @@ server <- function(input, output) {
     } 
   })
   
-  
+#Predictor Part 
+
+# Uses linear models to predict body mass from numeric values entered for each measurement
   observeEvent(input$predict_button,{
     new_measurement_data <- data.frame(
       LTRL = as.numeric(input$LTRL_predict),
       RTRA = as.numeric(input$RTRA_predict)
       )
     
-    LTRL_lm <- lm(log(Mass) ~ log(LTRL) , data = rodent_avg)
-    RTRA_lm <- lm(log(Mass) ~ log(RTRA) , data = rodent_avg)
+    LTRL_lm <- lm(log(Mass) ~ log(LTRL) , data = rodent_avg) # model 1
+    RTRA_lm <- lm(log(Mass) ~ log(RTRA) , data = rodent_avg) # model 2
     
     predicted_BodyMass_ltrl <- predict(LTRL_lm, newdata = new_measurement_data)
     predicted_BodyMass_ltrl <- exp(predicted_BodyMass_ltrl)
@@ -159,7 +153,7 @@ server <- function(input, output) {
     #predicted_BodyMass_rtra <- mean(predicted_BodyMass_rtra)
     predicted_BodyMass_rtra <- exp(predicted_BodyMass_rtra)
     
-    output$prediction_output <- renderText({
+    output$prediction_output <- renderText({ # printing statements with predicted mass value for each condition of LTRTL or RTRA
         if (new_measurement_data$LTRL > 0  & new_measurement_data$RTRA == 0) { 
         paste0("Prediction of Body Mass from Lower Toothrow Length ", print(predicted_BodyMass_ltrl), " grams")
        }
@@ -177,28 +171,31 @@ server <- function(input, output) {
       }
      })
     
-    output$`Body Size Estimation Plotted` <- renderPlot({ #values less than 2 plot off of graph
+    # plotting predicted value with points from linear model, visualized in sidebar so can be compared with original plot of model
+    # plots made in base r compared to ggplot 2 above
+    # different conditional statements based off of numeric values entered for each measurement
+    output$`Body Size Estimation Plotted` <- renderPlot({ #values less than 2 plot off of graph, and if LTRL > 76 and RTRA > 900
       if (new_measurement_data$LTRL > 2  &  new_measurement_data$LTRL < 76 & new_measurement_data$RTRA == 0) { 
-        predict_bm <- log(predicted_BodyMass_ltrl)
+        predict_bm <- log(predicted_BodyMass_ltrl) # need to log values again because I reversed this above to get numeric mass value
         input_ltrl <- log(new_measurement_data$LTRL)
         plot(rodent_avg$`log(LTRL)`, rodent_avg$`log(Mass)`, col = "black", xlab = "Log(LTRL)", ylab = "Log(Mass)", main = "Linear Model with Predicted Body Mass", pch = 16)
         points(input_ltrl, predict_bm, col = "red", pch = 16)
       legend("bottomright", legend = c("Actual Mass Data", "Predicted Mass Data"), col = c("black", "red"), pch = c(16,16))
       }
       else if (new_measurement_data$RTRA > 2 & new_measurement_data$RTRA < 900 & new_measurement_data$LTRL == 0) { 
-        predict_bm_rtra <- log(predicted_BodyMass_rtra)
+        predict_bm_rtra <- log(predicted_BodyMass_rtra) # need to log values again because I reversed this above to get numeric mass value
         input_rtra <- log(new_measurement_data$RTRA)
         plot(rodent_avg$`log(RTRA)`, rodent_avg$`log(Mass)`, col = "black", xlab = "Log(RTRA)", ylab = "Log(Mass)", main = "Linear Model with Predicted Body Mass", pch = 16)
         points(input_rtra, predict_bm_rtra, col = "blue", pch = 16)
         legend("bottomright", legend = c("Actual Mass Data", "Predicted Mass Data"), col = c("black", "blue"), pch = c(16,16))
       }
       else if (new_measurement_data$LTRL > 2 & new_measurement_data$LTRL < 76 & new_measurement_data$RTRA > 2 & new_measurement_data$RTRA < 900 ) { 
-        predict_bm <- log(predicted_BodyMass_ltrl)
+        predict_bm <- log(predicted_BodyMass_ltrl) # need to log values again because I reversed this above to get numeric mass value
         input_ltrl <- log(new_measurement_data$LTRL)
-        predict_bm_rtra <- log(predicted_BodyMass_rtra)
+        predict_bm_rtra <- log(predicted_BodyMass_rtra) # need to log values again because I reversed this above to get numeric mass value
         input_rtra <- log(new_measurement_data$RTRA)
-        par(mfrow=c(2,1))
-        par(xpd=TRUE)
+        par(mfrow=c(2,1)) #allows for plots to occur together in two rows
+        par(xpd=TRUE) # allows for legend to be created outside of plot
         plot(rodent_avg$`log(LTRL)`, rodent_avg$`log(Mass)`, col = "black", xlab = "Log(LTRL)", ylab = "Log(Mass)", main = "Linear Model with Predicted Body Mass (LTRL)", pch = 16)
         points(input_ltrl, predict_bm, col = "red", pch = 16)
         legend(1.8,14, legend = c("Actual Mass Data", "Predicted Mass Data"), horiz=TRUE, bty='n', cex=0.8, col = c("black", "red"), pch = c(16,16))
@@ -209,6 +206,7 @@ server <- function(input, output) {
     })
   })
 }
-  
+
+# creating app
 shinyApp(ui = ui, server = server)
 
