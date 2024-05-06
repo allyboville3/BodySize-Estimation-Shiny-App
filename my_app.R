@@ -6,9 +6,26 @@ library(broom)
 library(dplyr)
 library(plotly)
 
+#this data is adapted from  and builds off of my work for the Data Replication Assignment
+
+#Publication used in Data Replication Assignment
+### Hopkins 2008: REASSESSING THE MASS OF EXCEPTIONALLY LARGE RODENTS USING TOOTHROW LENGTH AND AREA AS PROXIES FOR BODY MASS
+#A common tool used by paleontologists to understand the physiology, ecology and evolution of fossil mammals (and also fossil vertebrates) 
+#is reconstructing body size. In mammals in particular, this can be done using dimensions of the appendicular skeletal elements 
+#and dental morphology. For rodents in particular this most commonly is seen using the first lower molar (m1), 
+#but in this paper a proxy for body mass is developed using toothrow length and area for the dentary (lower jaw). 
+#The main objective of this publication was to estimate body mass for extinct rodent taxa from dental toothrow length and area 
+#and determine the effectiveness of these proxies compared with previously published estimations of body mass from femur diameter. 
+#This study showed that tooth dimensions are accurate for estimating body mass when looking at interspecific comparisons, 
+#and even more accurate proxies when looking at narrow subclades within Rodentia that are more closely related to a fossil taxa of interest.
+
+#the pdf of this paper has been uploaded to github in the same repo as this app. 
+
+#I decided to use this publication and some of the code from my Data Replication Assignment to turn it into an Shiny App! This way people
+#could enter in measurement values for lower toothrow length or rectangular toothrow area for any Rodent and get an output of predicted body mass!!
 
 # Loading in Dataset
-#this data is adapted from My work for the Data Replication Assignment
+
 rodents <- "https://raw.githubusercontent.com/allyboville3/Data-Replication-Assignment/main/Hopkins%202008%20-%20Appendix1.csv"
 rodent_df <- read_csv(rodents, col_names = TRUE)
 
