@@ -97,7 +97,7 @@ server <- function(input, output) {
     mod <- paste0(input$response, " ~ ", input$predictors[1])
     return(mod)
   })
-
+  #outputs from liner model to be shwon in app
   output$modelresults <- renderTable({
     if (!is.null(m())) {
       res <- lm(data = rodent_avg, formula = m())
@@ -107,7 +107,7 @@ server <- function(input, output) {
   }, width = "100%", rownames = TRUE, striped = TRUE, spacing = "s", bordered = TRUE,
   align = "c", digits = 2)
   
-#outputs from liner model portion
+
   output$model <- renderText({
     paste0("Model: ", print(m()))
   })
